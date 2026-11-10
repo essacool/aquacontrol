@@ -1,1 +1,248 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101b2d"><title>AquaControl</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"></head><body><header><div class="drop">💧</div><div><h1>AquaControl</h1><small>SMART FAUCET · KELOMPOK 3</small></div><b id="conn" class="badge off">Offline</b></header><main><section><h2>STATUS PERANGKAT</h2><p><i id="dot"></i><b id="online">Belum terhubung</b><span id="seen"></span></p><div class="metrics"><article><small>Jarak tangan</small><strong><span id="dist">--</span> cm</strong><small>HC-SR04 · GPIO14/27</small></article><article><small>Status keran</small><strong id="valve">--</strong><small>Servo MG996R · GPIO13</small></article></div><div class="alarm"><b>Alarm laser</b><span id="alarmBadge" class="badge">Siaga</span><p id="alarmText">Belum ada data</p></div></section><section><h2>KONTROL KERAN</h2><p class="muted">Mode manual menonaktifkan kontrol buka/tutup otomatis dari sensor.</p><div class="grid"><button id="auto" class="selected">⟳ Otomatis</button><button id="manual">☝ Manual</button></div><div id="manualBox" class="grid hide"><button id="open" class="primary">Buka keran</button><button id="close" class="secondary">Tutup keran</button></div><p id="modeInfo" class="muted">Mode otomatis aktif.</p></section><section><h2>AKTIVITAS</h2><div id="events" class="events">Belum ada aktivitas.</div></section><details open><summary>PENGATURAN MQTT</summary><p class="muted">Gunakan broker pribadi dengan autentikasi dan TLS. Kredensial disimpan di browser perangkat ini.</p><form id="form"><label>Host broker<input id="host" placeholder="alamat broker tanpa https://" required></label><div class="two"><label>Port WSS<input id="port" value="8884" type="number" required></label><label>Path<input id="path" value="/mqtt" required></label></div><label>Username<input id="user" required></label><label>Password<input id="pass" type="password" required></label><label>ID perangkat<input id="device" value="keran-kelompok3" required></label><button class="primary">Simpan & hubungkan</button><button type="button" id="disconnect" class="secondary">Putuskan</button></form><small class="muted">Notifikasi browser dalam prototipe ini membutuhkan aplikasi/browser aktif. Push saat aplikasi ditutup perlu backend push tambahan.</small></details><footer>Prototipe AquaControl · ESP32 MicroPython + MQTT</footer></main><div id="toast"></div><script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071a2e">
+
+  <title>AquaControl - SMAN 6 Bandung</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="hero">
+
+  <!-- IDENTITAS SEKOLAH -->
+  <div class="school">
+
+    <img
+      src="assets/logo-sman6.png"
+      alt="Logo SMA Negeri 6 Bandung"
+    >
+
+    <div>
+      <small>PROYEK INFORMATIKA · KELAS XII-6</small>
+      <h1>AquaControl</h1>
+      <p>Smart Automatic Faucet · Kelompok 3</p>
+    </div>
+
+  </div>
+
+  <!-- IDENTITAS ANGGOTA -->
+  <div class="team">
+
+    <h3>Dibuat oleh Kelas XII-6 · Kelompok 3</h3>
+
+    <p>Bintang Deandra Putra</p>
+    <p>Kyla Cetta Salsabila Aji</p>
+    <p>Mahessa Novan Yusufa</p>
+    <p>Ryfal Ramdani Shaputra</p>
+    <p>Shaila Gantina Putri</p>
+    <p>Talita Putri Utama</p>
+
+  </div>
+
+</header>
+
+
+<main>
+
+  <!-- STATUS PERANGKAT -->
+  <section class="topline">
+
+    <div>
+      <small>MONITORING REAL-TIME</small>
+      <h2>Dashboard Perangkat</h2>
+    </div>
+
+    <span id="conn" class="badge off">Offline</span>
+
+  </section>
+
+
+  <!-- INFORMASI SENSOR -->
+  <section class="metrics">
+
+    <article>
+      <small>Jarak Tangan</small>
+      <strong>
+        <span id="dist">--</span> cm
+      </strong>
+      <p>Sensor HC-SR04</p>
+    </article>
+
+    <article>
+      <small>Status Keran</small>
+      <strong id="valve">--</strong>
+      <p>Servo MG996R</p>
+    </article>
+
+    <article>
+      <small>Status Alarm</small>
+      <strong id="alarmBadge">Siaga</strong>
+      <p id="alarmText">Belum ada data</p>
+    </article>
+
+  </section>
+
+
+  <!-- KONTROL KERAN -->
+  <section class="panel">
+
+    <h2>Kontrol Keran</h2>
+    <p>Pilih mode pengoperasian keran.</p>
+
+    <div class="grid">
+
+      <button id="auto" class="selected">
+        OTOMATIS
+      </button>
+
+      <button id="manual">
+        MANUAL
+      </button>
+
+    </div>
+
+    <div class="grid">
+
+      <button id="open" class="primary" disabled>
+        BUKA KERAN
+      </button>
+
+      <button id="close" class="secondary" disabled>
+        TUTUP KERAN
+      </button>
+
+    </div>
+
+    <p id="modeInfo">Mode otomatis aktif.</p>
+
+  </section>
+
+
+  <!-- RIWAYAT AIR -->
+  <section class="panel">
+
+    <h2>Riwayat Penggunaan Air</h2>
+
+    <div class="grid">
+
+      <button data-period="day" class="selected">
+        HARIAN
+      </button>
+
+      <button data-period="week">
+        MINGGUAN
+      </button>
+
+      <button data-period="month">
+        BULANAN
+      </button>
+
+    </div>
+
+    <h3>Total Penggunaan</h3>
+
+    <strong id="usageTotal">0,00 L</strong>
+
+    <div id="usageChart"></div>
+
+    <p id="usageDuration">Durasi: 0 menit</p>
+
+    <small>
+      Volume air merupakan estimasi berdasarkan durasi
+      keran terbuka. Pengukuran aktual membutuhkan
+      sensor debit air.
+    </small>
+
+  </section>
+
+
+  <!-- PENGATURAN MQTT -->
+  <section class="panel">
+
+    <h2>Pengaturan MQTT</h2>
+
+    <form id="form">
+
+      <label>
+        Host Broker
+        <input id="host" required>
+      </label>
+
+      <label>
+        Port WSS
+        <input id="port" value="8084" required>
+      </label>
+
+      <label>
+        Path
+        <input id="path" value="/mqtt" required>
+      </label>
+
+      <label>
+        Username
+        <input id="user" required>
+      </label>
+
+      <label>
+        Password
+        <input id="pass" type="password" required>
+      </label>
+
+      <label>
+        ID Perangkat
+        <input id="device" value="keran" required>
+      </label>
+
+      <button class="primary" type="submit">
+        SIMPAN & HUBUNGKAN
+      </button>
+
+      <button
+        type="button"
+        id="disconnect"
+        class="secondary"
+      >
+        PUTUSKAN
+      </button>
+
+    </form>
+
+  </section>
+
+
+  <!-- AKTIVITAS -->
+  <section class="panel">
+
+    <h2>Aktivitas Perangkat</h2>
+
+    <div id="events">
+      Belum ada aktivitas.
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer>
+  AquaControl · SMAN 6 Bandung · XII-6 Kelompok 3
+</footer>
+
+
+<div id="toast"></div>
+
+
+<!-- MQTT -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<!-- JAVASCRIPT AQUACONTROL -->
+<script src="app.js"></script>
+
+</body>
+</html>
